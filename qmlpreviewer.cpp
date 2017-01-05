@@ -26,8 +26,6 @@ void QmlPreviewer::reload()
         QResource::unregisterResource(map["rcc"].toString(), m_prefix);
     }
 
-    // TODO multiple files cannot be loaded to the same prefix, only the first loaded appears
-
     for(auto qrcPath : m_qrcPaths) {
         QVariantMap map = qrcPath.toMap();
         QProcess process;
