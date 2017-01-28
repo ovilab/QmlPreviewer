@@ -5,18 +5,17 @@
 #include <QObject>
 #include <QQuickItem>
 #include <QQuickView>
+#include <QGuiApplication>
 
 class QmlPreviewer : public QObject
 {
     Q_OBJECT
 public:
-    explicit QmlPreviewer(QApplication &app);
-
-signals:
-
+    explicit QmlPreviewer(QGuiApplication &app);
+    bool show();
+    int exec();
 public slots:
     void reload();
-    void show();
     void setQrcPaths(QVariant qrcPaths);
 private:
     QFileSystemWatcher m_watcher;
@@ -26,6 +25,7 @@ private:
     QVariantList m_qrcPaths;
     QObject *m_object = nullptr;
     QString m_prefix = "/qtqmlpreview";
+    QGuiApplication &m_app;
 };
 
 #endif // QMLPREVIEWER_H

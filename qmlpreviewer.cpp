@@ -1,7 +1,6 @@
 #include "qmlpreviewer.h"
 
 #include <QDebug>
-#include <QApplication>
 #include <QDirIterator>
 #include <QRegularExpression>
 #include <QProcess>
@@ -9,10 +8,10 @@
 #include <QQmlEngine>
 #include <QCryptographicHash>
 
-QmlPreviewer::QmlPreviewer(QApplication &app)
+QmlPreviewer::QmlPreviewer(QGuiApplication &app)
+    : m_app(app)
 {
     Q_UNUSED(app)
-    connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, &QmlPreviewer::reload);
 }
 
 void QmlPreviewer::reload()
@@ -80,6 +79,14 @@ void QmlPreviewer::setQrcPaths(QVariant qrcPaths)
     QVariantList paths = qrcPaths.toList();
     QUrl projectPath;
     m_qrcPaths.clear();
+    QString proPaths = QMLPREVIEWER_RESOURCES;
+    for(const QString &path : proPaths.split(" ")) {
+        if(path != "__end__" && !path.endsWith("qmlpreviewer.qrc")) {
+            qDebug() << "Propath" << path;
+            paths.append(QUrl::fromLocalFile(path));
+        }
+    }
+
     for(QVariant path : paths) {
         QUrl pathUrl = path.toUrl();
         QString hash = QCryptographicHash::hash(pathUrl.toString().toLatin1(), QCryptographicHash::Md5).toBase64().replace("=", "").replace("/", "").replace("\\", "");
@@ -89,18 +96,30 @@ void QmlPreviewer::setQrcPaths(QVariant qrcPaths)
             {"hash", hash}
         };
         m_qrcPaths.append(map);
+        qDebug() << "URL" << pathUrl;
         projectPath = path.toUrl().adjusted(QUrl::RemoveFilename);
     }
     reload();
     QMetaObject::invokeMethod(m_rootItem, "refreshFileView");
 }
 
-void QmlPreviewer::show()
+bool QmlPreviewer::show()
 {
-    m_view.setSource(QUrl("qrc:///QmlPreviewer/QmlPreviewerDialog.qml"));
-    m_view.setResizeMode(QQuickView::SizeRootObjectToView);
-    m_rootItem = m_view.rootObject();
-    connect(m_rootItem, SIGNAL(changeQrcPaths(QVariant)), this, SLOT(setQrcPaths(QVariant)));
-    QMetaObject::invokeMethod(m_rootItem, "refresh");
-    m_view.show();
+    if(m_app.arguments().contains("--qmlpreviewer")) {
+        connect(&m_watcher, &QFileSystemWatcher::fileChanged, this, &QmlPreviewer::reload);
+        m_view.setTitle("QmlPreviewer");
+        m_view.setSource(QUrl("qrc:///QmlPreviewer/QmlPreviewerDialog.qml"));
+        m_view.setResizeMode(QQuickView::SizeRootObjectToView);
+        m_rootItem = m_view.rootObject();
+        connect(m_rootItem, SIGNAL(changeQrcPaths(QVariant)), this, SLOT(setQrcPaths(QVariant)));
+        QMetaObject::invokeMethod(m_rootItem, "refresh");
+        m_view.show();
+        return true;
+    }
+    return false;
+}
+
+int QmlPreviewer::exec()
+{
+    return m_app.exec();
 }
