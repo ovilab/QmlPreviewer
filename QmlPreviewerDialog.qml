@@ -75,8 +75,13 @@ Rectangle {
         loader.source = filePath.toString().replace("file:", "qrc")
     }
 
-    function requestStart() {
-        start(qrcPaths, filePath)
+    function notifyChangeQrcPaths() {
+        console.log("Change qrc paths")
+        if(additionalCheckBox.checked) {
+            changeQrcPaths(qrcPaths)
+        } else {
+            changeQrcPaths([])
+        }
     }
 
     Settings {
